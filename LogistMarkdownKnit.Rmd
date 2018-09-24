@@ -1,0 +1,81 @@
+---
+title: "Banks_logistic_markdown"
+author: "Raja Prashanth Mullapudi"
+date: "September 18, 2018"
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+bank<- read.csv(file.choose())
+View(bank)
+attach(bank)
+```
+```{r}
+summary(bank)
+str(bank) #most variables are discrete, but are memtioned as int
+typeof(bank)#o/p is it is a list
+```
+
+```{r}
+#glm function to implement logistic function (generalized linear model)
+logit<- glm(y ~ age + factor(default) + balance + factor(housing) + factor(loan)+duration+campaign+pdays+previous+factor(poutfailure)
+            +factor(poutother)+factor(poutsuccess)+factor(poutunknown)+factor(con_cellular)+factor(con_telephone)
+            +factor(con_unknown)+factor(divorced)+factor(married)+factor(single)+factor(joadmin.)+factor(joblue.collar)+
+            factor(joentrepreneur)+factor(johousemaid)+factor(jomanagement)+factor(joretired)+factor(joself.employed)+
+              factor(joservices)+factor(jostudent)+factor(jotechnician)+factor(jounemployed)+factor(jounknown)
+            , family = binomial, data = bank)
+
+summary(logit) 
+#Significant terms -> Intercept, balance, factor(housing)1, factor(loan)1, duration, campaign, factor(poutfailure)1, factor(poutother)1
+# factor(poutsuccess)1, factor(con_cellular)1 , factor(con_telephone)1, factor(married)1, factor(divorced)1, factor(joretired)1 ,
+# factor(jostudent)1
+#not significant -> all the others
+
+#Null Deviance = 32,631, Residual Deviance = 22,640 
+#Since Null > Residual the model variables are significant to predict the output
+```
+
+```{r}
+exp(coef(logit))
+
+dim(bank)
+
+table(y) #o/p is 0->39,922 and 1-> 5289
+```
+
+```{r}
+#use function predict to get probability value for each row
+prob <- predict(logit, type=c("response"), bank)
+prob<-as.data.frame(prob)
+
+#we select only elements that are more than 0.50
+confusion <- table(prob>0.50, bank$y)
+confusion
+#Actual value of 0 in Y is 39922 and 1 for 5289 records
+#but predicted for 0 correctly in 39013 cases, and wrongly for 909 cases
+#similarly correct for 1 in 1702 cases and wrongly for 3587 cases
+#therefore model accuracy is 90.05%
+```
+
+```{r}
+#therefore model accuracy is 90.05%
+
+model_accuracy<-sum(diag(confusion)/sum(confusion))
+model_accuracy
+```
+
+```{r}
+#ROC Curve
+#install.packages("ROCR")
+library(ROCR)
+rocrpred <- prediction(prob, bank$y)
+rocrperf <- performance(rocrpred, 'tpr', 'fpr')
+plot(rocrperf,colorize=T,text.adj=c(-0.2,1.7))
+```
